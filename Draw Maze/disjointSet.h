@@ -16,7 +16,6 @@ namespace cDisjointSet
 		void printSet(int item) const;
 		void remove(int x);
 		void printAll() const;
-		void resize(int n);
 		bool allConnected() const;
 		inline int numOfElements() const { return s.size(); }
 

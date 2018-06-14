@@ -3,24 +3,12 @@
 namespace cDisjointSet
 {
 	// This is the constructor, it will initialize all disjoint sets with -1
-	DisjSets::DisjSets(int elements) : s(elements)
-	{
-		for(unsigned int i = 0; i < s.size(); ++i)
-			s[i] = -1;
-	}
+	DisjSets::DisjSets(int elements) : s(elements, -1) {}
 
 	DisjSets::DisjSets(const DisjSets& source)
 	{
 		for(unsigned int i = 0; i < source.s.size(); ++i)
 			s.push_back(source.s[i]);
-	}
-
-	void DisjSets::resize(int n)
-	{
-		s.resize(n);
-
-		for(unsigned int i = 0; i < s.size(); ++i)
-			s[i] = -1;
 	}
 
 	// Union of two disjoint sets

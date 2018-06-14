@@ -5,6 +5,7 @@
 #include <iostream>
 #include <time.h>
 #include <cstdlib>
+#include <memory>
 
 namespace cMaze
 {
@@ -14,7 +15,7 @@ namespace cMaze
 		wall() {}
 		wall(int a, int b): x(a), y(b) {}
 		inline bool isEqual(wall b) const { return ( x == b.x && y == b.y); }
-		void print() { std::cout << x << "	" << y << "\n"; }
+		void print() const { std::cout << x << "	" << y << "\n"; }
 	};
 
 	class maze
@@ -31,11 +32,13 @@ namespace cMaze
 		inline int wallSP(int i) const { return walls[i].y; }
 		/* Given two nodes, it will return true if there is a wall between them, false otherwise */
 		bool isWall(int a, int b) const;
+		inline size_t GetNumRows() const { return rows; }
+		inline size_t GetNumCols() const { return cols; }
 
 	private:
-		int rows, cols;
+		size_t rows, cols;
 		std::vector<wall> walls;
-		cDisjointSet::DisjSets *cels;
+		std::unique_ptr<cDisjointSet::DisjSets> cels;
 
 		// Helper functions
 		void makeWalls();

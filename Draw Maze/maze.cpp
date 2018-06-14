@@ -3,17 +3,14 @@
 
 namespace cMaze
 {
-	maze::maze(int n, int m) : rows(n), cols(m) 
-	{
-		cels = new cDisjointSet::DisjSets(rows*cols);
-	}
+	maze::maze(int n, int m) : rows(n), cols(m), cels(std::make_unique<cDisjointSet::DisjSets>(rows*cols)) {}
 
 	// Copy constructor
 	maze::maze(const maze& source) : rows(source.rows), cols(source.cols)
 	{	
-		for(unsigned int i = 0; i < source.walls.size(); ++i)
+		for(size_t i = 0; i < source.walls.size(); ++i)
 			walls.push_back(source.walls[i]);
-		cels = new cDisjointSet::DisjSets(*source.cels);
+		cels = std::make_unique<cDisjointSet::DisjSets>(source.cels->numOfElements());
 	}
 
 	void maze::createMaze()

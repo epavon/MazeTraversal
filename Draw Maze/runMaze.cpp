@@ -8,9 +8,11 @@
 #include "disjointSet.h"
 #include "maze.h"
 #include <cstdlib>
+#include <chrono>
 #include <Windows.h>
 #include <gl/glut.h>		// Depending on installation, may be gl/glut.h instead 
 #include <list>
+
 using namespace cMaze;
 using namespace std;
 
@@ -18,9 +20,8 @@ const double HEIGHT = 400;
 const double WIDTH = 600;
 const float PI = 3.141592;
 
-size_t rows, cols;
 GLfloat horDiv, vertDiv;
-maze* myMaze;
+std::unique_ptr<maze> pMaze;
 
 struct cell
 {
@@ -31,7 +32,9 @@ struct cell
 	int fCost() const { return gCost + hCost; }
 	cell& operator =(const cell& b) 
 	{
-		node = b.node;	backPtr = b.backPtr; gCost = b.gCost; 
+		node = b.node;	
+		backPtr = b.backPtr; 
+		gCost = b.gCost; 
 		hCost = b.hCost;
 		return *this;
 	}
@@ -64,6 +67,8 @@ list<cell>::iterator it;		// Beginning of closed list of A* algorithm
 */
 int gethCost(int node)
 {
+	auto rows = pMaze->GetNumRows();
+	auto cols = pMaze->GetNumCols();
 	int endOfRow = (node/cols) * cols + (cols-1);
 	return (endOfRow - node) + ((cols * rows - 1) - endOfRow) / cols;
 }
@@ -91,7 +96,7 @@ list<cell>::iterator incList(list<cell>& l, list<cell>::iterator it, int n)
 /* Purely for debugging purposes */
 void showList(list<cell>& l)
 {
-	for(list<cell>::iterator i = l.begin(); i != l.end(); ++i)
+	for(auto i = l.begin(); i != l.end(); ++i)
 		cout << i->node << "	";
 	cout << "\n\n";
 }
@@ -131,6 +136,8 @@ void addToOpenList(std::list<cell>& aslist, const std::list<cell>::iterator& it,
 /* Traverse maze using the A* algorithm */
 bool traverse()
 {
+	auto rows = pMaze->GetNumRows();
+	auto cols = pMaze->GetNumCols();
 	int numOfNodes = rows*cols;
 	cell tmp;
 	int goal = rows*cols-1;					// end state in maze, once reached, end loop
@@ -145,16 +152,16 @@ bool traverse()
 	while(true) 
 	{
 		/* Look left */
-		if(it->node % cols != 0 && !myMaze->isWall(it->node,it->node - 1)) 
+		if(it->node % cols != 0 && !pMaze->isWall(it->node,it->node - 1)) 
 			addToOpenList(aslist,it, it->node-1);
 		/* Look right */
-		if((it->node + 1) % cols != 0 && !myMaze->isWall(it->node, it->node + 1))
+		if((it->node + 1) % cols != 0 && !pMaze->isWall(it->node, it->node + 1))
 			addToOpenList(aslist,it, it->node+1);
 		/* Look up */
-		if(it->node / cols != 0 && !myMaze->isWall(it->node, it->node - cols))
+		if(it->node / cols != 0 && !pMaze->isWall(it->node, it->node - cols))
 			addToOpenList(aslist,it, it->node-cols);
 		/* Look down */
-		if(it->node/cols != rows-1 && !myMaze->isWall(it->node, it->node + cols))
+		if(it->node/cols != rows-1 && !pMaze->isWall(it->node, it->node + cols))
 			addToOpenList(aslist,it,it->node+cols);
 
 		/* Pick node with lowest F cost from open list */
@@ -193,6 +200,8 @@ void drawLine(GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2)
 
 void drawCircle( int node )
 {
+	auto rows = pMaze->GetNumRows();
+	auto cols = pMaze->GetNumCols();
 	int numPoints = 200;
 	float offsetX = (horDiv/2) * ((node%cols) * 2 + 1);
 	float offsetY = (vertDiv/2) * ((rows - 1 - (node/cols)) * 2 + 1);
@@ -223,6 +232,8 @@ void drawPath()
 
 void display()
 {
+	auto rows = pMaze->GetNumRows();
+	auto cols = pMaze->GetNumCols();
 	glColor3f(0.9,.9,.9);
 
 	GLfloat x1, y1, x2, y2;
@@ -237,10 +248,10 @@ void display()
 	drawLine(0.,0.5, 600.-horDiv, 0.5);
 
 	/******** Draw Maze ***************/
-	for(int i = 0; i < myMaze->numOfWalls(); ++i)
+	for(int i = 0; i < pMaze->numOfWalls(); ++i)
 	{
-		firstCell = myMaze->wallFP(i);
-		secondCell = myMaze->wallSP(i);
+		firstCell = pMaze->wallFP(i);
+		secondCell = pMaze->wallSP(i);
 		if(std::abs(firstCell - secondCell) == 1)
 		{	// Draw vertical line
 			x1 = (secondCell % cols) * horDiv;
@@ -266,11 +277,13 @@ void display()
 
 void myinit()
 {
+	auto rows = pMaze->GetNumRows();
+	auto cols = pMaze->GetNumCols();
 	horDiv = WIDTH/cols;
 	vertDiv = HEIGHT/rows;
 
 	// Initialize OpenGL State attributes
-	glLineWidth(2.);
+	glLineWidth(2.0);
 	glClearColor(0.1f, 0.1f, 0.1f, 0.0f);
 	glColor3f(0.9f,0.9f,0.9f);
 	glPointSize(1.5);
@@ -282,13 +295,18 @@ void myinit()
 int main(int argc, char** argv)
 {
 	// Get dimensions
+	size_t rows, cols;
 	std::cout << "Enter two ints, rows and columns of the maze\n";
 	std::cin >> rows >> cols;
 
-	myMaze = new maze(rows,cols);
-	myMaze->createMaze();
-	// myMaze->printMaze();  // Enable to see maze representation in std output
+	auto start = std::chrono::high_resolution_clock::now();
+	pMaze = std::make_unique<maze>(rows, cols);
+	pMaze->createMaze();
+	// pMaze->printMaze();  // Enable to see maze representation in std output
 	traverse();
+	auto end = std::chrono::high_resolution_clock::now();
+	std::cout << "maze generation and traversal took: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+		<< " milliseconds\n";
 
 	glutInit(&argc,argv);
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
